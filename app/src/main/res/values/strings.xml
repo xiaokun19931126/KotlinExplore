@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">KotlinExplore</string>
+    <string name="contact_thumb">联系人头像</string>
+    <string name="first_name">First Name</string>
+    <string name="last_name">Last Name</string>
+    <string name="email_address">邮箱地址</string>
+</resources>
