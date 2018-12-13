@@ -1,6 +1,8 @@
 # KotlinExplore
 Android中kotlin的探索。
 
+![](gif/kotlin_explore.gif)
+
 1.分号在kotlin的行末尾中是可选的；
 2.方法是被关键字fun声明；
 3.关键字lateinit允许你推迟初始化一个非空变量；
