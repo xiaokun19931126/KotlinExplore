@@ -28,8 +28,7 @@
         android:layout_margin="@dimen/fab_margin"
         android:tint="@android:color/white"
         app:fabSize="normal"
-        app:srcCompat="@drawable/ic_add"
-        tools:ignore="VectorDrawableCompat" />
+        app:srcCompat="@drawable/ic_add" />
 
     <include layout="@layout/content_contacts" />
 

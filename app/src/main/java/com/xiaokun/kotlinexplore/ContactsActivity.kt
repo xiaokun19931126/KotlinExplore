@@ -1,20 +1,26 @@
 package com.xiaokun.kotlinexplore
 
+import android.bluetooth.le.AdvertiseCallback
 import android.content.Context
 import android.content.SharedPreferences
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.v7.app.AlertDialog
+import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.EditText
 import android.widget.TextView
 import com.google.gson.Gson
+import kotlinx.android.synthetic.main.activity_contacts.*
 import kotlinx.android.synthetic.main.contact_list_item.view.*
+import kotlinx.android.synthetic.main.content_contacts.*
 import kotlinx.android.synthetic.main.input_contact_dialog.view.*
+import org.json.JSONArray
+import org.json.JSONException
+import java.io.IOException
 
 /**
  * kotlin中有四个可见性修饰符:private、 protected、 internal 和 public。
@@ -32,8 +38,12 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
      *   private var mEntryValid = false
      */
     private lateinit var mPrefs: SharedPreferences
-
     private lateinit var mContacts: ArrayList<Contact>
+    private lateinit var mAdapter: ContactsAdapter
+
+    private lateinit var mFirstNameEdit: EditText
+    private lateinit var mLastNameEdit: EditText
+    private lateinit var mEmailEdit: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +51,12 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
 
         mPrefs = getPreferences(Context.MODE_PRIVATE)
         mContacts = loadContacts()
+        mAdapter = ContactsAdapter(mContacts)
 
+        setSupportActionBar(toolbar)
+        setupRecyclerView()
+
+        fab.setOnClickListener { showAddContactDialog(-1) }
     }
 
     /**
@@ -56,20 +71,139 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
         return contactSet.mapTo(ArrayList()) { Gson().fromJson(it, Contact::class.java) }
     }
 
-    private lateinit var mFirstNameEdit: EditText
-    private lateinit var mLastNameEdit: EditText
-    private lateinit var mEmailEdit: EditText
+    /**
+     * 设置recyclerView
+     */
+    private fun setupRecyclerView() {
+        contact_list.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+        contact_list.adapter = mAdapter
+    }
+
+    /**
+     * 从assets中获取联系人
+     */
+    private fun generateContacts() {
+        var contactsString = readContactJsonFile()
+        try {
+            var contactsJson = JSONArray(contactsString)
+            for (i in 0 until contactsJson.length()) {
+                var contactJson = contactsJson.getJSONObject(i)
+                var contact = Contact(contactJson.getString("first_name"), contactJson.getString("last_name"),
+                        contactJson.getString("email"))
+                mContacts.add(contact)
+            }
+
+            mAdapter.notifyDataSetChanged()
+            saveContacts()
+        } catch (e: JSONException) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * 带?表示返回有可能为null
+     */
+    private fun readContactJsonFile(): String? {
+        var contactsString: String? = null
+        try {
+            var inputStream = assets.open("mock_contacts.json")
+            var size = inputStream.available()
+            val buffer = ByteArray(size)
+            inputStream.read(buffer)
+            inputStream.close()
+
+            contactsString = String(buffer)
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        return contactsString
+    }
+
+    /**
+     * 保存联系人到sp
+     */
+    private fun saveContacts() {
+        val edit = mPrefs.edit()
+        edit.clear()
+        var contactSet = mContacts.map { Gson().toJson(it, Contact::class.java) }.toSet()
+        edit.putStringSet(CONTACT_KEY, contactSet)
+        edit.apply()
+    }
 
     /**
      * 展示添加或者编辑联系人dialog
      */
-    private fun showAddContactDialog(adapterPosition: Int) {
+    private fun showAddContactDialog(contactPosition: Int) {
         var dialogView = LayoutInflater.from(this).inflate(R.layout.input_contact_dialog, null)
         mFirstNameEdit = dialogView.edittext_firstname
         mLastNameEdit = dialogView.edittext_lastname
         mEmailEdit = dialogView.edittext_email
 
+        //检测是编辑还是添加
+        var editing = contactPosition > -1
 
+        if (editing) {
+            val contact = mContacts.get(contactPosition)
+            mFirstNameEdit.isEnabled = false
+            mLastNameEdit.isEnabled = false
+            mEmailEdit.isEnabled = true
+            mFirstNameEdit.setText(contact.firstName)
+            mLastNameEdit.setText(contact.lastName)
+            mEmailEdit.setText(contact.email)
+        }
+
+        var dialogTitle = if (editing) {
+            getString(R.string.edit_contact)
+        } else {
+            getString(R.string.add_contact)
+        }
+
+        var builder = AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setTitle(dialogTitle)
+                .setPositiveButton("保存", null)
+                .setNegativeButton("取消", null)
+
+        val dialog = builder.show()
+
+
+    }
+
+    /**
+     * 清空联系人
+     */
+    private fun clearContacts() {
+        mContacts.clear()
+        saveContacts()
+        mAdapter.notifyDataSetChanged()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_contacts, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
+        val id = item?.itemId
+        when (id) {
+            R.id.action_clear -> {
+                clearContacts()
+                return true
+            }
+            R.id.action_generate -> {
+                generateContacts()
+                return true
+            }
+            R.id.action_sort_first -> {
+
+                return true
+            }
+            R.id.action_sort_last -> {
+
+                return true
+            }
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     override fun afterTextChanged(s: Editable?) {
@@ -102,8 +236,11 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
             return mContacts.size
         }
 
-        override fun onBindViewHolder(p0: ViewHolder, p1: Int) {
-
+        override fun onBindViewHolder(holder: ViewHolder, poosition: Int) {
+            val (firstName, lastName, email) = mContacts[poosition]
+            val fullName = "$firstName$lastName"
+            holder.nameLabel.text = fullName
+            holder.emailLabel.text = email
         }
 
         /**
