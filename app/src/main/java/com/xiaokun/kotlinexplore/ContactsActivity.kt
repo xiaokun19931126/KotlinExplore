@@ -3,16 +3,23 @@ package com.xiaokun.kotlinexplore
 import android.bluetooth.le.AdvertiseCallback
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.drawable.Drawable
+import android.os.Build
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.os.PatternMatcher
+import android.support.annotation.RequiresApi
+import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.RecyclerView
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Patterns
 import android.view.*
 import android.widget.EditText
 import android.widget.TextView
+import android.widget.Toast
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_contacts.*
 import kotlinx.android.synthetic.main.contact_list_item.view.*
@@ -44,6 +51,7 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
     private lateinit var mFirstNameEdit: EditText
     private lateinit var mLastNameEdit: EditText
     private lateinit var mEmailEdit: EditText
+    private var valitor = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -139,6 +147,10 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
         mLastNameEdit = dialogView.edittext_lastname
         mEmailEdit = dialogView.edittext_email
 
+        mFirstNameEdit.addTextChangedListener(this)
+        mLastNameEdit.addTextChangedListener(this)
+        mEmailEdit.addTextChangedListener(this)
+
         //检测是编辑还是添加
         var editing = contactPosition > -1
 
@@ -166,7 +178,23 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
 
         val dialog = builder.show()
 
-
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (valitor) {
+                if (editing) {
+                    var contact = mContacts.get(contactPosition)
+                    contact.email = mEmailEdit.text.toString()
+                    mAdapter.notifyItemChanged(contactPosition)
+                } else {
+                    var contact = Contact(mFirstNameEdit.text.toString(), mLastNameEdit.text.toString(), mEmailEdit.text.toString())
+                    mContacts.add(contact)
+                    mAdapter.notifyItemInserted(mContacts.size)
+                }
+                dialog.dismiss()
+                saveContacts()
+            } else {
+                Toast.makeText(this@ContactsActivity, "请输入正确的联系人", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     /**
@@ -207,7 +235,50 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
     }
 
     override fun afterTextChanged(s: Editable?) {
+        /**
+         * 1.创建一个不可变的变量后面用来保存一个lambda表达式,命令为notEmpty
+         *   这个lambda表达式携带一个TextView参数然后返回一个布尔值Boolean
+         *   如下所示：
+         *   val notEmpty:(TextView) -> Boolean
+         * 2.给这个lambda表达式赋值,当textview的text属性不为空时返回true
+         *   val notEmpty:(TextView) -> Boolean = {textView -> textView.text.isNotEmpty()}
+         * 3.如果lambda表达式只有一个参数,那能被忽略然后被it代替
+         *   如下所示：
+         *   val notEmpty:(TextView) -> Boolean = {it.text.isNotEmpty()}
+         * 4.创建另外一个lambda表达式并赋值给isEmail
+         *   如下所示：
+         *   val isEmail:(TextView) -> Boolean = {Patterns.EMAIL_ADDRESS.matcher(text).matches()}
+         * 5.
+         *
+         *
+         */
+        val notEmpty: (TextView) -> Boolean = { it.text.isNotEmpty() }
+        val isEmail: (TextView) -> Boolean = { Patterns.EMAIL_ADDRESS.matcher(it.text).matches() }
 
+        var passIcon: Drawable? = ContextCompat.getDrawable(this, R.drawable.ic_pass)
+        var failIcon: Drawable? = ContextCompat.getDrawable(this, R.drawable.ic_fail)
+
+        if (notEmpty(mFirstNameEdit)) {
+            mFirstNameEdit.setCompoundDrawablesWithIntrinsicBounds(null, null, passIcon, null)
+        } else {
+            mFirstNameEdit.setCompoundDrawablesWithIntrinsicBounds(null, null, failIcon, null)
+        }
+
+        if (notEmpty(mLastNameEdit)) {
+            mLastNameEdit.setCompoundDrawablesWithIntrinsicBounds(null, null, passIcon, null)
+        } else {
+            mLastNameEdit.setCompoundDrawablesWithIntrinsicBounds(null, null, failIcon, null)
+        }
+
+        if (isEmail(mEmailEdit)) {
+            mEmailEdit.setCompoundDrawablesWithIntrinsicBounds(null, null, passIcon, null)
+        } else {
+            mEmailEdit.setCompoundDrawablesWithIntrinsicBounds(null, null, failIcon, null)
+        }
+
+        if (notEmpty(mFirstNameEdit) && notEmpty(mLastNameEdit) && isEmail(mEmailEdit)) {
+            valitor = true
+        }
     }
 
     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
