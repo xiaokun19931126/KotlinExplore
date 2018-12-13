@@ -223,11 +223,13 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
                 return true
             }
             R.id.action_sort_first -> {
-
+                mContacts.sortBy { it.firstName }
+                mAdapter.notifyDataSetChanged()
                 return true
             }
             R.id.action_sort_last -> {
-
+                mContacts.sortBy { it.lastName }
+                mAdapter.notifyDataSetChanged()
                 return true
             }
         }
@@ -235,6 +237,14 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
     }
 
     override fun afterTextChanged(s: Editable?) {
+//        valite1()
+        valite2()
+    }
+
+    /**
+     * 验证方法1,传统的比较笨的方法
+     */
+    private fun valite1() {
         /**
          * 1.创建一个不可变的变量后面用来保存一个lambda表达式,命令为notEmpty
          *   这个lambda表达式携带一个TextView参数然后返回一个布尔值Boolean
@@ -276,9 +286,22 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
             mEmailEdit.setCompoundDrawablesWithIntrinsicBounds(null, null, failIcon, null)
         }
 
-        if (notEmpty(mFirstNameEdit) && notEmpty(mLastNameEdit) && isEmail(mEmailEdit)) {
-            valitor = true
-        }
+        valitor = notEmpty(mFirstNameEdit) and notEmpty(mLastNameEdit) and isEmail(mEmailEdit)
+    }
+
+    /**
+     * 利用kotlin的扩展高阶函数
+     */
+    private fun valite2() {
+        /**
+         * 改变传递TextView作为参数的lambda表达式,作为TextView的一个扩展表达式
+         * 移除参数,移除it参数引用,直接使用textview属性
+         */
+        val notEmpty: TextView.() -> Boolean = { text.isNotEmpty() }
+        val isEmail: TextView.() -> Boolean = { Patterns.EMAIL_ADDRESS.matcher(text).matches() }
+        valitor = mFirstNameEdit.validateWith(validator = notEmpty) and
+                mLastNameEdit.validateWith(validator = notEmpty) and
+                mEmailEdit.validateWith(validator = isEmail)
     }
 
     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
