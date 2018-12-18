@@ -1,4 +1,4 @@
-package com.xiaokun.kotlinexplore
+package com.xiaokun.kotlinexplore.contact
 
 /**
  * 1.data关键字告诉kotlin编译器这个类是被用来储存数据，会被生成很多有用的方法，比如toString方法实现对象内容

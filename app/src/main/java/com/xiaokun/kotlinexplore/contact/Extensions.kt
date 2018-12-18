@@ -1,9 +1,10 @@
-package com.xiaokun.kotlinexplore
+package com.xiaokun.kotlinexplore.contact
 
 import android.graphics.drawable.Drawable
 import android.support.v4.content.ContextCompat
 import android.widget.EditText
 import android.widget.TextView
+import com.xiaokun.kotlinexplore.R
 
 /**
  * <pre>

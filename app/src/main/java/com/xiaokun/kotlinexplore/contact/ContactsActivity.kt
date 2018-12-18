@@ -1,14 +1,10 @@
-package com.xiaokun.kotlinexplore
+package com.xiaokun.kotlinexplore.contact
 
-import android.bluetooth.le.AdvertiseCallback
 import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.drawable.Drawable
-import android.os.Build
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.os.PatternMatcher
-import android.support.annotation.RequiresApi
 import android.support.v4.content.ContextCompat
 import android.support.v7.app.AlertDialog
 import android.support.v7.widget.DividerItemDecoration
@@ -21,6 +17,7 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import com.google.gson.Gson
+import com.xiaokun.kotlinexplore.R
 import kotlinx.android.synthetic.main.activity_contacts.*
 import kotlinx.android.synthetic.main.contact_list_item.view.*
 import kotlinx.android.synthetic.main.content_contacts.*
@@ -63,6 +60,7 @@ class ContactsActivity : AppCompatActivity(), TextWatcher {
 
         setSupportActionBar(toolbar)
         setupRecyclerView()
+        setTitle("联系人")
 
         fab.setOnClickListener { showAddContactDialog(-1) }
     }
